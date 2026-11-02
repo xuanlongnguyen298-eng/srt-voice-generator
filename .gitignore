@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*_voice.wav
+*_voice_parts/
+ffmpeg/ffmpeg.exe
+ffmpeg/*.dll
+lenh_khoi_dong.txt
