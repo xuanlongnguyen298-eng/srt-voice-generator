@@ -61,6 +61,11 @@ class Cue:
     text: str
 
 
+def cue_duration_ms(cue: Cue) -> int:
+    """Timeline length of one cue. Zero-length cues still count as 1 ms."""
+    return max(cue.end_ms - cue.start_ms, 1)
+
+
 def parse_timestamp(value: str) -> int:
     hours, minutes, remainder = value.split(":")
     seconds, milliseconds = remainder.split(",")
@@ -579,6 +584,7 @@ def main() -> int:
         duration_seconds = cues[-1].end_ms / 1000
         print(
             f"SRT: {args.srt}\n"
+            f"Speaker: {args.speaker_id}\n"
             f"Cues: {len(cues)}\n"
             f"Timeline: {cues[0].start_ms / 1000:.3f}s - {duration_seconds:.3f}s "
             f"({duration_seconds / 60:.2f} min)"
@@ -660,6 +666,10 @@ def main() -> int:
                     raise RuntimeError(
                         f"Failed to synthesize cue {cue.index}: {exc}"
                     ) from exc
+                print(
+                    f"PROGRESS {cue.index} {cue_duration_ms(cue)}",
+                    flush=True,
+                )
 
         build_timeline(cues, work_dir, args.output, ffmpeg)
         print(f"Done: {args.output}")

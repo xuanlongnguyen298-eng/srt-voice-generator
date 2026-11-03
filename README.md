@@ -18,10 +18,21 @@ hay cho các câu chồng nhau.
    `BLAZE_API_KEY=` rồi lưu file. Không thêm dấu ngoặc kép.
 5. Chọn voice trong danh sách. Có thể gõ tên hoặc ID vào ô lọc; bấm **Nghe thử**
    để nghe clip mẫu của voice đang chọn.
-6. Bấm **Chọn SRT và tạo voice**, rồi chọn file phụ đề `.srt` hoặc `.txt`.
-7. WAV được tạo cạnh file phụ đề đã chọn, với tên `<tên-file>_voice.wav`.
+6. Bấm **Thêm file** để chọn một hoặc nhiều file `.srt`/`.txt`. Dùng nút **Lên**
+   và **Xuống** để sắp xếp thứ tự. Mỗi file mới được gán voice đang chọn; để đổi
+   voice riêng cho file, chọn file đó trong hàng đợi, chọn voice bên dưới rồi bấm
+   **Gán voice**. Có thể chọn nhiều file để gán cùng một voice.
+7. Bấm **Chạy hàng đợi**. Ứng dụng lần lượt tạo audio cho từng file bằng voice
+   được hiển thị cạnh file đó. WAV được tạo cạnh file phụ đề tương ứng, với tên
+   `<tên-file>_voice.wav`.
 
-Các lần sau chỉ cần nhấp đúp `Cài đặt và mở.bat`, rồi chọn SRT/TXT.
+Có thể thu nhỏ ứng dụng trong khi hàng đợi chạy. Kết quả từng file và lỗi (nếu
+có) được ghi vào log; khi một file lỗi, ứng dụng vẫn tiếp tục file tiếp theo.
+Nếu WAV đầu ra đã tồn tại, ứng dụng hỏi một lần trước khi chạy: ghi đè các WAV
+đó, hoặc bỏ qua file đã có WAV.
+
+Các lần sau chỉ cần nhấp đúp `Cài đặt và mở.bat`, thêm các file cần chạy và sắp
+xếp hàng đợi.
 Audio trung gian/cache nằm trong thư mục `<tên-file>_voice_parts` cạnh file SRT,
 giúp chạy lại mà không phải gửi lại những câu đã tạo xong.
 
