@@ -26,6 +26,8 @@ FFMPEG_PATH = APP_DIR / "ffmpeg" / "ffmpeg.exe"
 PYTHON_PATH = APP_DIR / ".venv" / "Scripts" / "python.exe"
 VOICE_CATALOG_URL = "https://api.blaze.vn/v1/tts/list-speaker-ids"
 VOICE_PREVIEW_URL = "https://api.blaze.vn/v1/tts/voices/{voice_id}/preview"
+TTS_MODEL = "v2.0_pro"
+DEFAULT_VOICE_ID = "HN-Nam-2-TM"
 
 
 class VoiceGeneratorApp:
@@ -57,7 +59,7 @@ class VoiceGeneratorApp:
         ).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 8))
         ttk.Label(
             container,
-            text="Model Blaze TTS 3 · Chọn voice và nghe thử · Tự căn tốc độ theo timestamp",
+            text="Model v2.0 Pro · Voice của model này, gồm BTV và Blaze Note · Tự căn tốc độ theo timestamp",
         ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(0, 14))
 
         ttk.Label(container, text="Hàng đợi file phụ đề (chạy theo thứ tự bên dưới):").grid(
@@ -225,9 +227,14 @@ class VoiceGeneratorApp:
             return
         existing_paths = {self.queue_key(path) for path in self.queue_paths}
         selected_voice = self.voice_from_combo()
-        default_voice_id = (
-            selected_voice["id"] if selected_voice else "HN-Nam-2-TM"
-        )
+        if not selected_voice:
+            messagebox.showerror(
+                "Chưa có voice của Blaze TTS 3",
+                "Hãy đợi danh sách voice của v2.0_pro tải xong rồi thêm file.",
+                parent=self.root,
+            )
+            return
+        default_voice_id = selected_voice["id"]
         self.active_voice_id = default_voice_id
         added = 0
         for selected_path in paths:
@@ -249,7 +256,7 @@ class VoiceGeneratorApp:
         try:
             self.queue_listbox.delete(0, tk.END)
             for index, path in enumerate(self.queue_paths, start=1):
-                voice_id = self.queue_voice_ids.get(self.queue_key(path), "HN-Nam-2-TM")
+                voice_id = self.queue_voice_ids.get(self.queue_key(path), "")
                 voice_label = self.voice_name_for_id(voice_id)
                 self.queue_listbox.insert(
                     tk.END, f"{index}. {path.name} — voice: {voice_label}"
@@ -289,7 +296,20 @@ class VoiceGeneratorApp:
         )
         if voice:
             return f"{voice['name']} [{voice_id}]"
-        return voice_id
+        return voice_id or "chưa gán"
+
+    def replace_unknown_queue_voices(self, known_ids: set[str]) -> int:
+        replacement = self.active_voice_id
+        if not replacement or replacement not in known_ids:
+            return 0
+        replaced = 0
+        for path in self.queue_paths:
+            key = self.queue_key(path)
+            current = self.queue_voice_ids.get(key)
+            if current not in known_ids:
+                self.queue_voice_ids[key] = replacement
+                replaced += 1
+        return replaced
 
     def assign_voice_to_selected_files(self) -> None:
         selected_indices = self.current_queue_selection()
@@ -388,33 +408,22 @@ class VoiceGeneratorApp:
                     f"Blaze không tải được danh sách voice "
                     f"(HTTP {response.status_code}): {response.text[:400]}"
                 )
-            payload = response.json()
-            entries = payload.get("list_speakers") if isinstance(payload, dict) else None
-            if not isinstance(entries, list):
+            entries = self.catalog_entries(response.json())
+            if entries is None:
                 raise RuntimeError("Blaze trả về danh sách voice không đúng định dạng.")
 
             voices: list[dict[str, str]] = []
             for entry in entries:
                 if not isinstance(entry, dict):
                     continue
-                voice_id = entry.get("id")
-                if not isinstance(voice_id, str) or not voice_id.strip():
-                    continue
-                voices.append(
-                    {
-                        "id": voice_id.strip(),
-                        "name": str(entry.get("name") or voice_id).strip(),
-                        "gender": str(entry.get("gender") or "").strip(),
-                        "language": str(entry.get("language") or "").strip(),
-                        "province": str(entry.get("province") or "").strip(),
-                        "type": str(entry.get("type") or "").strip(),
-                    }
-                )
+                voice = self.normalize_catalog_voice(entry)
+                if voice:
+                    voices.append(voice)
             if not voices:
-                raise RuntimeError("Blaze không trả về voice nào để chọn.")
+                raise RuntimeError("Blaze không trả về voice nào của v2.0_pro.")
             voices.sort(
                 key=lambda voice: (
-                    voice["language"] != "vi",
+                    not self.is_vietnamese_voice(voice),
                     voice["name"].casefold(),
                     voice["id"].casefold(),
                 )
@@ -422,6 +431,45 @@ class VoiceGeneratorApp:
             self.messages.put(("voices_loaded", voices))
         except (requests.RequestException, requests.JSONDecodeError, RuntimeError) as exc:
             self.messages.put(("voices_error", str(exc)))
+
+    @staticmethod
+    def catalog_entries(payload: object) -> list[object] | None:
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict):
+            for key in ("voices", "list_speakers"):
+                entries = payload.get(key)
+                if isinstance(entries, list):
+                    return entries
+        return None
+
+    @staticmethod
+    def normalize_catalog_voice(entry: dict[str, object]) -> dict[str, str] | None:
+        raw_id = entry.get("voice_id") or entry.get("id")
+        if not isinstance(raw_id, str) or not raw_id.strip():
+            return None
+        language = entry.get("language")
+        if not isinstance(language, str) or not language.strip():
+            languages = entry.get("languages")
+            if isinstance(languages, list):
+                language = ", ".join(
+                    str(item).strip() for item in languages if str(item).strip()
+                )
+            else:
+                language = ""
+        return {
+            "id": raw_id.strip(),
+            "name": str(entry.get("name") or raw_id).strip(),
+            "gender": str(entry.get("gender") or "").strip(),
+            "language": language.strip(),
+            "province": str(entry.get("province") or "").strip(),
+            "type": str(entry.get("type") or "").strip(),
+        }
+
+    @staticmethod
+    def is_vietnamese_voice(voice: dict[str, str]) -> bool:
+        tokens = {part.strip().casefold() for part in voice["language"].split(",")}
+        return "vi" in tokens
 
     @staticmethod
     def voice_label(voice: dict[str, str]) -> str:
@@ -554,9 +602,10 @@ class VoiceGeneratorApp:
             content_type = response.headers.get("content-type", "").lower()
             if "json" in content_type or len(response.content) <= 44:
                 raise RuntimeError("Blaze không trả về dữ liệu audio nghe thử.")
+            suffix = ".wav" if "wav" in content_type or response.content.startswith(b"RIFF") else ".mp3"
 
             with tempfile.NamedTemporaryFile(
-                prefix="blaze_voice_preview_", suffix=".mp3", delete=False
+                prefix="blaze_voice_preview_", suffix=suffix, delete=False
             ) as preview_file:
                 mp3_path = Path(preview_file.name)
                 preview_file.write(response.content)
@@ -710,10 +759,25 @@ class VoiceGeneratorApp:
                 return
             overwrite_existing = overwrite_choice
 
+        known_voice_ids = {voice["id"] for voice in self.voices.values()}
+        missing_voice_files = [
+            path.name
+            for path in self.queue_paths
+            if self.queue_voice_ids.get(self.queue_key(path)) not in known_voice_ids
+        ]
+        if missing_voice_files:
+            preview = "\n".join(missing_voice_files[:8])
+            messagebox.showerror(
+                "Voice không thuộc Blaze TTS 3",
+                "Mỗi file cần một voice trong danh sách v2.0_pro.\n\n"
+                f"{preview}",
+                parent=self.root,
+            )
+            return
         queue_items = tuple(
             (
                 path,
-                self.queue_voice_ids.get(self.queue_key(path), "HN-Nam-2-TM"),
+                self.queue_voice_ids[self.queue_key(path)],
             )
             for path in self.queue_paths
         )
@@ -773,7 +837,7 @@ class VoiceGeneratorApp:
                 "--output",
                 str(output_path),
                 "--model",
-                "blaze-tts-3",
+                TTS_MODEL,
                 "--speaker-id",
                 voice_id,
                 "--workers",
@@ -889,18 +953,27 @@ class VoiceGeneratorApp:
                         values=list(self.voices),
                         state=tk.DISABLED if self.is_generating else "readonly",
                     )
-                    default_label = next(
-                        (
-                            label
-                            for label, voice in self.voices.items()
-                            if voice["id"] == (self.active_voice_id or "HN-Nam-2-TM")
-                        ),
-                        next(iter(self.voices)),
-                    )
+                    known_labels = {
+                        voice["id"]: label for label, voice in self.voices.items()
+                    }
+                    preferred_id = self.active_voice_id
+                    if preferred_id not in known_labels:
+                        preferred_id = (
+                            DEFAULT_VOICE_ID
+                            if DEFAULT_VOICE_ID in known_labels
+                            else next(iter(self.voices.values()))["id"]
+                        )
+                    default_label = known_labels[preferred_id]
                     if self.voice_choice.get() not in self.voices:
                         self.voice_choice.set(default_label)
                     self.active_voice_id = self.voices[self.voice_choice.get()]["id"]
+                    replaced = self.replace_unknown_queue_voices(set(known_labels))
                     self.refresh_queue_list()
+                    if replaced:
+                        self.append_log(
+                            "Đã đổi voice không thuộc v2.0_pro sang "
+                            f"{self.voice_name_for_id(self.active_voice_id)}."
+                        )
                     self.assign_voice_button.configure(
                         state=tk.DISABLED if self.is_generating else tk.NORMAL
                     )
@@ -908,8 +981,12 @@ class VoiceGeneratorApp:
                         state=tk.DISABLED if self.is_generating else tk.NORMAL
                     )
                     if not self.is_generating:
-                        self.status.set(f"Đã tải {len(self.voices)} voice từ Blaze.")
-                    self.append_log(f"Đã tải danh sách {len(self.voices)} voice.")
+                        self.status.set(
+                            f"Đã tải {len(self.voices)} voice của v2.0_pro."
+                        )
+                    self.append_log(
+                        f"Đã tải {len(self.voices)} voice của v2.0_pro."
+                    )
                 elif kind == "voices_error":
                     self.voice_choice.set("Không tải được danh sách voice")
                     if self.is_generating:

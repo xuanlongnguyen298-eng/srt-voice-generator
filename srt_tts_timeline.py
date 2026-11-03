@@ -549,8 +549,12 @@ def main() -> int:
         help="Directory for resumable TTS audio parts (default: <output>_parts).",
     )
     parser.add_argument("--language", default="vi")
-    parser.add_argument("--model", default="blaze-tts-3")
-    parser.add_argument("--speaker-id", default="HN-Nam-2-TM")
+    parser.add_argument("--model", default="v2.0_pro")
+    parser.add_argument(
+        "--speaker-id",
+        default="HN-Nam-2-TM",
+        help="Speaker id from GET /v1/tts/list-speaker-ids, for example HN-Nam-2-TM.",
+    )
     parser.add_argument("--audio-speed", type=float, default=1.0)
     parser.add_argument(
         "--limit-cues",
