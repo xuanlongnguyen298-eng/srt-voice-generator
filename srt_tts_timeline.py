@@ -552,8 +552,8 @@ def main() -> int:
     parser.add_argument("--model", default="v2.0_pro")
     parser.add_argument(
         "--speaker-id",
-        default="HN-Nam-2-TM",
-        help="Speaker id from GET /v1/tts/list-speaker-ids, for example HN-Nam-2-TM.",
+        default="HN-Nar-Nam-BlazeNote",
+        help="Speaker id from GET /v1/tts/list-speaker-ids, for example HN-Nar-Nam-BlazeNote.",
     )
     parser.add_argument("--audio-speed", type=float, default=1.0)
     parser.add_argument(

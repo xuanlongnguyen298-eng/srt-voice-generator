@@ -27,7 +27,7 @@ PYTHON_PATH = APP_DIR / ".venv" / "Scripts" / "python.exe"
 VOICE_CATALOG_URL = "https://api.blaze.vn/v1/tts/list-speaker-ids"
 VOICE_PREVIEW_URL = "https://api.blaze.vn/v1/tts/voices/{voice_id}/preview"
 TTS_MODEL = "v2.0_pro"
-DEFAULT_VOICE_ID = "HN-Nam-2-TM"
+DEFAULT_VOICE_ID = "HN-Nar-Nam-BlazeNote"
 
 
 class VoiceGeneratorApp:
@@ -229,7 +229,7 @@ class VoiceGeneratorApp:
         selected_voice = self.voice_from_combo()
         if not selected_voice:
             messagebox.showerror(
-                "Chưa có voice của Blaze TTS 3",
+                "Chưa có voice",
                 "Hãy đợi danh sách voice của v2.0_pro tải xong rồi thêm file.",
                 parent=self.root,
             )

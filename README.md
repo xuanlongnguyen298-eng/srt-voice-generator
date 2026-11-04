@@ -2,7 +2,7 @@
 
 Ứng dụng Windows đơn giản để chọn file `.srt` hoặc `.txt` có timestamp và tạo WAV
 lồng tiếng bằng Blaze.
-Mặc định dùng model `v2.0_pro`, speaker `HN-Nam-2-TM` (BTV Sơn Hoàng), 10 worker.
+Mặc định dùng model `v2.0_pro`, speaker `HN-Nar-Nam-BlazeNote` (Blaze Note), 10 worker.
 Danh sách voice lấy từ `GET /v1/tts/list-speaker-ids`, gồm các giọng BTV và
 Blaze Note. Các lần gửi
 request TTS được giãn cách tối thiểu 1 giây dùng chung giữa các worker để giảm
@@ -66,7 +66,7 @@ và thêm `ffmpeg.exe` vào `PATH`, hoặc đặt `ffmpeg.exe` cục bộ trong 
 Sau khi cài, mở PowerShell tại thư mục ứng dụng:
 
 ```powershell
-.\.venv\Scripts\python.exe .\srt_tts_timeline.py "C:\Video\subtitles.srt" --output "C:\Video\subtitles_voice.wav" --model v2.0_pro --speaker-id HN-Nam-2-TM --workers 10
+.\.venv\Scripts\python.exe .\srt_tts_timeline.py "C:\Video\subtitles.srt" --output "C:\Video\subtitles_voice.wav" --model v2.0_pro --speaker-id HN-Nar-Nam-BlazeNote --workers 10
 ```
 
 `BLAZE_API_KEY` cần được cấu hình trong `.env` của thư mục ứng dụng hoặc trong
