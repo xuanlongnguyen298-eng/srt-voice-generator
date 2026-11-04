@@ -841,7 +841,7 @@ class VoiceGeneratorApp:
                 "--speaker-id",
                 voice_id,
                 "--workers",
-                "10",
+                "4",
                 "--ffmpeg",
                 ffmpeg,
             ]

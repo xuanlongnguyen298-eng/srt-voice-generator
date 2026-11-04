@@ -564,8 +564,8 @@ def main() -> int:
     parser.add_argument(
         "--workers",
         type=int,
-        default=5,
-        help="Number of subtitle cues to synthesize concurrently (default: 5).",
+        default=4,
+        help="Number of subtitle cues to synthesize concurrently (default: 4).",
     )
     parser.add_argument(
         "--api-base-url",
