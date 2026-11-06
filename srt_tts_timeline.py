@@ -115,7 +115,14 @@ def parse_srt(path: Path) -> list[Cue]:
 
 
 def run_ffmpeg(command: list[str]) -> None:
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
     if result.returncode:
         raise RuntimeError(
             f"FFmpeg failed: {result.stderr[-1200:].strip() or result.returncode}"
